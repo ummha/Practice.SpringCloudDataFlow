@@ -1,0 +1,5 @@
+1737150568811:help
+1737150594083:version
+1737150595901:history
+1737171598980:help
+1737171637910:stream create --name ticktock --definition "time --server.port=9000 | log"
