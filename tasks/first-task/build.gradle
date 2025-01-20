@@ -1,0 +1,24 @@
+plugins {
+    id 'java-conventions'
+    id 'task-conventions'
+}
+
+group = 'com.example.task'
+version = ''
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.apache.poi:poi:5.4.0'
+    implementation 'org.apache.poi:poi-ooxml:5.4.0' // XLSX 파일 읽기
+}
+
+
+jar.enabled = true
+bootJar.enabled = false
+
+jar {
+    archiveExtension = "jar"
+    archiveBaseName = "first-task"
+    archiveClassifier = ""
+    archiveVersion = ""
+}

@@ -1,1 +1,15 @@
 rootProject.name = 'spring-cloud-data'
+
+file("${rootDir}/tasks").eachDir {
+    include "tasks:${it.name}"
+}
+
+file("${rootDir}").eachDir {
+    if (
+            it.directory
+                    && new File(it.absolutePath, "build.gradle").exists()
+                    && it.name != 'buildSrc'
+    ) {
+        include(it.name)
+    }
+}

@@ -1,0 +1,21 @@
+plugins {
+    id 'java-conventions'
+    id 'task-conventions'
+}
+
+group = 'com.example.task'
+version = ''
+
+dependencies {
+}
+
+
+jar.enabled = true
+bootJar.enabled = false
+
+jar {
+    archiveExtension = "jar"
+    archiveBaseName = "first-task"
+    archiveClassifier = ""
+    archiveVersion = ""
+}
