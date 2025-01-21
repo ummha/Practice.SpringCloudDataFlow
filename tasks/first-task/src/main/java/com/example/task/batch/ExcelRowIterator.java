@@ -2,9 +2,10 @@ package com.example.task.batch;
 
 import com.example.task.dto.RowData;
 import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
-import org.xml.sax.*;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -18,7 +19,7 @@ public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData
 
     private final InputStream sheetInputStream;
     private final ReadOnlySharedStringsTable sharedStringsTable;
-    private List<RowData> rows = new ArrayList<>();
+    private final List<RowData> rows = new ArrayList<>();
     private int rowIndex = 0;
 
     public ExcelRowIterator(InputStream sheetInputStream, ReadOnlySharedStringsTable sharedStringsTable) throws Exception {
@@ -34,27 +35,27 @@ public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData
     }
 
     @Override
-    public RowData next() {
-        return null;
-    }
-
-    @Override
     public boolean hasNext() {
-        return false;
+        return rowIndex < rows.size();
     }
 
     @Override
-    public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-
+    public RowData next() {
+        return rows.get(rowIndex++);
     }
 
     @Override
-    public void endElement(String uri, String localName, String qName) throws SAXException {
-
+    public void startElement(String uri, String localName, String qName, Attributes attributes) {
+        // SAX 파서로 행 데이터 읽기 로직 구현 (셀의 데이터 유형 및 내용 처리)
     }
 
     @Override
-    public void characters(char[] ch, int start, int length) throws SAXException {
+    public void endElement(String uri, String localName, String qName) {
+        // 셀 데이터 종료 처리
+    }
 
+    @Override
+    public void characters(char[] ch, int start, int length) {
+        // 셀 데이터 문자 처리
     }
 }

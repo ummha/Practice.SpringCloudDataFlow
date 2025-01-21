@@ -1,28 +1,24 @@
 package com.example.task.batch;
 
+import com.example.task.dto.ExcelRow;
 import com.example.task.dto.RowData;
 import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.item.*;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.support.AbstractItemStreamItemReader;
 import org.springframework.stereotype.Component;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
-import java.util.Map;
 
 @Component
 @StepScope
-public class ExcelStreamItemReader extends AbstractItemStreamItemReader<Map<String, Object>> {
+public class ExcelStreamItemReader extends AbstractItemStreamItemReader<ExcelRow> {
 
     private Iterator<RowData> rowIterator;
 
@@ -40,20 +36,16 @@ public class ExcelStreamItemReader extends AbstractItemStreamItemReader<Map<Stri
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        try (InputStream inputStream = new FileInputStream(filePath.toFile())){
-            Workbook workbook = WorkbookFactory.create(inputStream);
-            Sheet sheet = workbook.getSheetAt(0);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
-    public Map<String, Object> read() {
-        return null;
+    public ExcelRow read() {
+        if (rowIterator != null && rowIterator.hasNext()) {
+            RowData rowData = rowIterator.next();
+            return new ExcelRow(rowData.rowIndex(), rowData.column1(), rowData.column2());
+        }
+        return null; // End of file
     }
-
 
     @Override
     public void update(ExecutionContext executionContext) throws ItemStreamException {
@@ -62,6 +54,6 @@ public class ExcelStreamItemReader extends AbstractItemStreamItemReader<Map<Stri
 
     @Override
     public void close() throws ItemStreamException {
-        super.close();
+        rowIterator = null;
     }
 }
