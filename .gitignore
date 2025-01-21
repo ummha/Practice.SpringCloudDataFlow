@@ -4,7 +4,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### Custom Ignores ###
 data-flow/*.jar
+files/
 
 ### STS ###
 .apt_generated
