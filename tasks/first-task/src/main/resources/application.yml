@@ -9,6 +9,8 @@ spring:
   batch:
     job:
       enabled: true
+    jdbc:
+      initialize-schema: always
   data:
     redis:
       host: localhost

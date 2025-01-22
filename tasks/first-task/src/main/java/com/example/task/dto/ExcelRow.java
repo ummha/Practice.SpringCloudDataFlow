@@ -1,4 +1,4 @@
 package com.example.task.dto;
 
-public record ExcelRow(int rowIndex, String column1, String column2) {
+public record ExcelRow(String column1, String column2) {
 }

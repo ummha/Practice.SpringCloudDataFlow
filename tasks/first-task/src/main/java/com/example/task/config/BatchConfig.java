@@ -19,21 +19,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 
 @Slf4j
-@Configuration
+//@Configuration
 public class BatchConfig {
 
     private final JobRepository jobRepository;
     private final CreateJobParameter jobParameter;
 
-    public BatchConfig(JobRepository jobRepository, CreateJobParameter jobParameter) {
+    public BatchConfig(JobRepository jobRepository, CreateJobParameter createJobParameter) {
         this.jobRepository = jobRepository;
-        this.jobParameter = jobParameter;
-        log.info("##> BatchConfig Initialized");
+        this.jobParameter = createJobParameter;
+        log.info("##> BatchConfig initialized");
     }
 
     @Bean("jobParameter")
     @JobScope
-    CreateJobParameter jobParameter(@Value("#{jobParameters['chunk-size']}") Integer chunkSize,
+    CreateJobParameter createJobParameter(@Value("#{jobParameters['chunk-size']}") Integer chunkSize,
                                     @Value("#{jobParameters['date']}") String date,
                                     @Value("#{jobParameters['time']}") String time) {
         log.info("##> JobParameter Initialized - chunkSize: {}, date: {}, time: {}", chunkSize, date, time);
