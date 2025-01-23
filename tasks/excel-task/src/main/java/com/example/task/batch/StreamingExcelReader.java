@@ -1,7 +1,7 @@
 package com.example.task.batch;
 
 import com.example.task.dto.ExcelRow;
-import com.example.task.dto.RowData;
+import com.example.task.excel.AbstractExcelRowIterator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
@@ -17,14 +17,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.List;
 
 @Slf4j
 @Component
-public class StreamingExcelItemReader extends AbstractItemStreamItemReader<ExcelRow> {
+public class StreamingExcelReader extends AbstractItemStreamItemReader<ExcelRow> {
 
-    private ExcelRowIterator rowIterator;
+    private AbstractExcelRowIterator<ExcelRow> rowIterator;
 
     private OPCPackage opcPackage = null;
 
@@ -49,7 +48,7 @@ public class StreamingExcelItemReader extends AbstractItemStreamItemReader<Excel
 
             // 2. Sheet 데이터 스트리밍 처리
             InputStream sheetInputStream = xssfReader.getSheetsData().next();
-            rowIterator = new ExcelRowIterator(sheetInputStream, sharedStrings);
+            rowIterator = new KsdExcelRowIterator(sheetInputStream, sharedStrings);
         } catch (Exception e) {
             throw new ItemStreamException("Failed to open Excel file", e);
         }
@@ -58,9 +57,9 @@ public class StreamingExcelItemReader extends AbstractItemStreamItemReader<Excel
     @Override
     public ExcelRow read() {
         if (rowIterator != null && rowIterator.hasNext()) {
-            RowData rowData = rowIterator.next();
+            ExcelRow rowData = rowIterator.next();
             rowCount++; // 행 개수를 증가시킴
-            return new ExcelRow(rowData.column1(), rowData.column2());
+            return rowData;
         }
         return null; // End of file
     }
@@ -69,8 +68,8 @@ public class StreamingExcelItemReader extends AbstractItemStreamItemReader<Excel
     public void update(ExecutionContext executionContext) throws ItemStreamException {
         super.update(executionContext);
         executionContext.putInt("rowCount", rowCount);
-        log.info("##> rowCount-1: {}", rowCount);
-        log.info("##> rowCount-2: {}", rowIterator.getRowCount());
+//        log.info("##> rowCount-1: {}", rowCount);
+//        log.info("##> rowCount-2: {}", rowIterator.getRowCount());
     }
 
     @Override

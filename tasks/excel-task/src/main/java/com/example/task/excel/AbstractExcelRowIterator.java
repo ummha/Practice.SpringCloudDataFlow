@@ -1,70 +1,42 @@
-package com.example.task.batch;
+package com.example.task.excel;
 
-import com.example.task.dto.RowData;
 import lombok.Getter;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
-import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData> {
-    private static final RowData EOF_MARKER = new RowData(true, null, null); // EOF 표시
-    private final BlockingQueue<RowData> queue = new LinkedBlockingQueue<>(1000);
+public abstract class AbstractExcelRowIterator<T extends ExcelRowSchema> extends DefaultHandler implements Iterator<T> {
+    private final T EOF_MARKER; // EOF 기준
+
+    private final BlockingQueue<T> queue = new LinkedBlockingQueue<>(1000);
 
     private final InputStream sheetInputStream;
     private final List<String> sharedStrings;
 
-    private final List<RowData> rows = new ArrayList<>(); // 모든 행 데이터를 저장
-
     private final StringBuilder currentCellValue = new StringBuilder(); // 현재 셀 데이터를 저장
     private final List<String> currentRowData = new ArrayList<>(); // 현재 행 데이터를 저장
     private String currentCellType; // 현재 셀 데이터 유형 (e.g., "s", "n")
+    private final Class<T> headerDefinitionClazz; // 헤더 정보
 
     @Getter
     private long rowCount = 0; // 총 행 개수를 추적하는 변수
+    private Map<String, Integer> headerIndex;
     private boolean isHeaderRow = true; // 첫 행인지 여부
-    private RowData nextRowData; // 다음 반환할 RowData
+    private T nextRowData; // 다음 반환할 RowData
 
-    private final String H_COMP_NO = "발행회사고객번호";
-    private final String H_STANDARD_DT = "권리기준일자";
-    private final String H_SHAREHOLDER_NM = "주주명";
-    private final String H_REAL_NAME_NO = "실명번호(주민번호)";
-    private final String H_SPECIAL_ACCOUNT_SHAREHOLDER_NO = "특별계좌주주번호";
-    private final String H_ACTUAL_SHAREHOLDER_NO = "실질주주번호";
-    private final String H_LF_TYPE = "내외국인구분";
-    private final String H_NATION = "국가코드";
-    private final String H_CORP_TYPE = "법인구분";
-    private final String H_STOCK_TYPE = "주식종류";
-    private final String H_STOCK_COUNT = "소유주식수";
-    private final String H_ZIPCODE = "우편번호";
-    private final String H_ADDRESS = "주소";
-    // 헤더 데이터를 저장
-    private final Map<String, Integer> header = new HashMap<>() {{
-        put(H_COMP_NO, null);
-        put(H_STANDARD_DT, null);
-        put(H_SHAREHOLDER_NM, null);
-        put(H_REAL_NAME_NO, null);
-        put(H_SPECIAL_ACCOUNT_SHAREHOLDER_NO, null);
-        put(H_ACTUAL_SHAREHOLDER_NO, null);
-        put(H_LF_TYPE, null);
-        put(H_NATION, null);
-        put(H_CORP_TYPE, null);
-        put(H_STOCK_TYPE, null);
-        put(H_STOCK_COUNT, null);
-        put(H_ZIPCODE, null);
-        put(H_ADDRESS, null);
-    }};
-
-    public ExcelRowIterator(InputStream sheetInputStream, List<String> sharedStrings) throws Exception {
+    public AbstractExcelRowIterator(InputStream sheetInputStream, List<String> sharedStrings, Class<T> headerDefinitionClazz) throws Exception {
         this.sheetInputStream = sheetInputStream;
         this.sharedStrings = sharedStrings;
+        this.headerDefinitionClazz = headerDefinitionClazz;
+        this.EOF_MARKER = getEOFMarker();
 
         // SAX 파서를 별도 쓰레드에서 실행
         Thread parserThread = new Thread(() -> {
@@ -72,13 +44,28 @@ public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData
                 SAXParserFactory factory = SAXParserFactory.newInstance();
                 SAXParser parser = factory.newSAXParser();
                 parser.parse(new InputSource(sheetInputStream), this);
-                queue.put(EOF_MARKER); // EOF 마커 추가
+                queue.put(this.EOF_MARKER); // EOF 마커 추가
             } catch (Exception e) {
                 throw new RuntimeException("Error during parsing", e);
             }
         });
         parserThread.start();
     }
+
+    /**
+     * EOF 객체 반환
+     * - 반환된 인스턴스로 End Of File 기준을 설정한다.
+     * @return EOF Marker
+     */
+    protected abstract T getEOFMarker();
+
+    /**
+     * 각 행 별로 추출할 데이터로 매핑 처리
+     * @param headerIndex 헤더 인덱스 정보
+     * @param rowData 행 데이터
+     * @return 추출할 데이터
+     */
+    protected abstract T mapper(Map<String, Integer> headerIndex, List<String> rowData);
 
     @Override
     public boolean hasNext() {
@@ -94,7 +81,7 @@ public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData
     }
 
     @Override
-    public RowData next() {
+    public T next() {
         if (nextRowData == EOF_MARKER) {
             throw new IllegalStateException("No more data available.");
         }
@@ -129,24 +116,27 @@ public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData
             return;
         }
         if ("row".equals(qName)) { // 행(row) 종료
-            if (isHeaderRow) { // 첫 행(헤더) 처리
-                for (int i = 0; i < currentRowData.size(); i++) { // 헤더 저장
-                    header.put(currentRowData.get(i).trim(), i);
-                }
+            /* 첫 행 처리 (헤더) */
+            if (isHeaderRow) {
+                Map<String, Integer> tempHeader = resolveHeaderIndex();
+                headerIndex = Collections.unmodifiableMap(tempHeader);
                 isHeaderRow = false; // 헤더 처리를 완료했으므로 플래그 변경
                 return;
             }
-            // 데이터 행 처리
-            if (!currentRowData.isEmpty()) { // 데이터가 존재하면 처리
-                RowData rowData = new RowData(
-                        false, resolveRowData(H_SHAREHOLDER_NM), resolveRowData(H_ACTUAL_SHAREHOLDER_NO)
-                );
-                try {
-                    queue.put(rowData); // 데이터를 큐에 추가
-                    rowCount++; // 행 개수 증가
-                } catch (InterruptedException e) {
-                    throw new RuntimeException("Interrupted while adding data to queue", e);
-                }
+            /* 데이터 행 처리 */
+            if (currentRowData.isEmpty()) { // 데이터가 없으면 처리 안함
+                return;
+            }
+
+            if (headerIndex == null) {
+                throw new RuntimeException("Excel Header not found.");
+            }
+
+            try {
+                queue.put(mapper(headerIndex, currentRowData)); // 데이터를 큐에 추가
+                rowCount++; // 행 개수 증가
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted while adding data to queue", e);
             }
         }
     }
@@ -158,19 +148,27 @@ public class ExcelRowIterator extends DefaultHandler implements Iterator<RowData
         }
     }
 
+    private Map<String, Integer> resolveHeaderIndex() {
+        Map<String, Integer> tempHeader = new HashMap<>();
+        for (Field field : headerDefinitionClazz.getDeclaredFields()) {
+            if (field.isAnnotationPresent(ExcelHeader.class)) {
+                String headerName = field.getAnnotation(ExcelHeader.class).value();
+                tempHeader.put(headerName, -1);
+            }
+        }
+        for (int i = 0; i < currentRowData.size(); i++) { // 헤더 저장
+            if (tempHeader.get(currentRowData.get(i).trim()) != null) {
+                tempHeader.put(currentRowData.get(i).trim(), i);
+            }
+        }
+        return tempHeader;
+    }
+
     private String parseCellValue(String value, String type) {
         if ("s".equals(type)) { // Shared String 처리
             int idx = Integer.parseInt(value);
             return sharedStrings.get(idx);
         }
         return value; // 다른 데이터 유형 처리
-    }
-
-    private String resolveRowData(final String headerName) {
-        Integer index = header.get(headerName);
-        return index == null
-                || index >= currentRowData.size()
-                || index < 0
-                ? "" : currentRowData.get(index);
     }
 }

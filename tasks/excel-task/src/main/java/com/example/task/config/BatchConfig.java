@@ -1,5 +1,6 @@
 package com.example.task.config;
 
+import com.example.task.batch.RedisPipelineWriter;
 import com.example.task.dto.ExcelRow;
 import com.example.task.parameter.CreateJobParameter;
 import lombok.extern.slf4j.Slf4j;
@@ -10,17 +11,13 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
-
-import java.util.Map;
 
 @Slf4j
 @Configuration
@@ -54,14 +51,15 @@ public class BatchConfig {
     }
 
     @Bean
-    public Step excelStep(@Qualifier("streamingExcelItemReader") ItemReader<ExcelRow> StreamingExcelItemReader,
-                          @Qualifier("excelItemWriter") ItemWriter<ExcelRow> excelItemWriter,
+    public Step excelStep(@Qualifier("streamingExcelReader") ItemReader<ExcelRow> StreamingExcelItemReader,
+//                          @Qualifier("excelItemWriter") ItemWriter<ExcelRow> excelItemWriter,
+                          RedisPipelineWriter redisPipelineWriter,
                           PlatformTransactionManager transactionManager) {
         log.info("##> ExcelStep initialized");
         return new StepBuilder("excelStep", jobRepository)
                 .<ExcelRow, ExcelRow>chunk(1000, transactionManager)
                 .reader(StreamingExcelItemReader)
-                .writer(excelItemWriter)
+                .writer(redisPipelineWriter)
                 .build();
     }
 

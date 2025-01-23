@@ -10,6 +10,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.apache.poi:poi:5.4.0'
     implementation 'org.apache.poi:poi-ooxml:5.4.0' // XLSX 파일 읽기
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
 
     runtimeOnly 'org.postgresql:postgresql'
 }
