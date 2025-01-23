@@ -19,7 +19,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 
 @Slf4j
-//@Configuration
+@Configuration
 public class BatchConfig {
 
     private final JobRepository jobRepository;

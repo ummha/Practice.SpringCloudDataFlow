@@ -6,10 +6,10 @@ import org.springframework.cloud.task.configuration.EnableTask;
 
 @EnableTask
 @SpringBootApplication
-public class ExcelToRedisTaskApplication {
+public class ExcelTaskApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ExcelToRedisTaskApplication.class, args);
+        SpringApplication.run(ExcelTaskApplication.class, args);
     }
 
 }
