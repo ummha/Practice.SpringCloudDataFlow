@@ -1,6 +1,6 @@
 package com.example.task.batch;
 
-import com.example.task.dto.ExcelRow;
+import com.example.task.dto.KsdExcelRow;
 import com.example.task.excel.AbstractExcelRowIterator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -8,6 +8,7 @@ import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.support.AbstractItemStreamItemReader;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.xml.sax.InputSource;
 
@@ -21,16 +22,16 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class StreamingExcelReader extends AbstractItemStreamItemReader<ExcelRow> {
+public class StreamingExcelReader extends AbstractItemStreamItemReader<KsdExcelRow> {
 
-    private AbstractExcelRowIterator<ExcelRow> rowIterator;
+    private AbstractExcelRowIterator<KsdExcelRow> rowIterator;
 
     private OPCPackage opcPackage = null;
 
     private int rowCount = 0; // 전체 행 개수를 추적하는 변수
 
     @Override
-    public void open(ExecutionContext executionContext) throws ItemStreamException {
+    public void open(@NonNull ExecutionContext executionContext) throws ItemStreamException {
         try {
             // 엑셀 파일 경로 설정
             Path filePath = Paths.get(Paths.get("").toAbsolutePath().toString(), "/files/test.xlsx");
@@ -55,9 +56,9 @@ public class StreamingExcelReader extends AbstractItemStreamItemReader<ExcelRow>
     }
 
     @Override
-    public ExcelRow read() {
+    public KsdExcelRow read() {
         if (rowIterator != null && rowIterator.hasNext()) {
-            ExcelRow rowData = rowIterator.next();
+            KsdExcelRow rowData = rowIterator.next();
             rowCount++; // 행 개수를 증가시킴
             return rowData;
         }

@@ -13,6 +13,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
 
     runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
 }
 
 

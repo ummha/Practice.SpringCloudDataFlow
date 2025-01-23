@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://localhost:5432/postgres
+#    username: postgres
+#    password: postgres
+#    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
   batch:
@@ -18,3 +18,15 @@ spring:
       database: 9
   flyway:
     batch: true
+
+database:
+  batch:
+    jdbc-url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  primary:
+    jdbc-url: jdbc:oracle:thin:@10.100.42.101:1521:IRKUDOS
+    username: ADMIN
+    password: admin00!!
+    driver-class-name: oracle.jdbc.OracleDriver

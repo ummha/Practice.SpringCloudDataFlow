@@ -3,7 +3,7 @@ package com.example.task.dto;
 import com.example.task.excel.ExcelHeader;
 import com.example.task.excel.ExcelRowSchema;
 
-public record ExcelRow(
+public record KsdExcelRow (
         @ExcelHeader(KsdExcelHeaderNames.SHAREHOLDER_NM)
         String shareholderNm,
         @ExcelHeader(KsdExcelHeaderNames.REAL_NAME_NO)
