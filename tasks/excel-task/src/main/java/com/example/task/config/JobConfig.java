@@ -1,6 +1,6 @@
 package com.example.task.config;
 
-import com.example.task.batch.LoadShareholderDetailStep;
+import com.example.task.batch.LoadShareholderDetailTasklet;
 import com.example.task.batch.RedisPipelineWriter;
 import com.example.task.batch.ShareholderTypeDecider;
 import com.example.task.dto.KsdExcelRow;
@@ -13,7 +13,6 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.core.step.builder.TaskletStepBuilder;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,11 +28,17 @@ public class JobConfig {
     private final JobRepository jobRepository;
     private final CreateJobParameter jobParameter;
     private final ShareholderTypeDecider shareholderTypeDecider;
+    private final PlatformTransactionManager transactionManager;
 
-    public JobConfig(JobRepository jobRepository, CreateJobParameter jobParameter, ShareholderTypeDecider shareholderTypeDecider) {
+    public JobConfig(JobRepository jobRepository,
+                     CreateJobParameter jobParameter,
+                     ShareholderTypeDecider shareholderTypeDecider,
+                     @Qualifier(DatabaseBeanNames.BATCH_TRANSACTION_MANAGER)
+                     PlatformTransactionManager transactionManager) {
         this.jobRepository = jobRepository;
         this.jobParameter = jobParameter;
         this.shareholderTypeDecider = shareholderTypeDecider;
+        this.transactionManager = transactionManager;
         log.info("##> JobConfig initialized");
     }
 
@@ -48,7 +53,7 @@ public class JobConfig {
 
     @Bean
     public Job excelProcessingJob(@Qualifier("excelStep") Step excelStep,
-                                  @Qualifier("shareholderDetailStep") Step loadShareholderDetailStep) {
+                                  @Qualifier("loadShareholderDetailStep") Step loadShareholderDetailStep) {
         log.info("##> ExcelProcessingJob initialized");
         return new JobBuilder("excelProcessingJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
@@ -59,19 +64,25 @@ public class JobConfig {
                 .build();
     }
 
+    /**
+     *
+     * @param loadShareholderDetailTasklet
+     * @return
+     */
     @Bean
-    public Step shareholderDetailStep(LoadShareholderDetailStep loadShareholderDetailStep,
-                                          @Qualifier(DatabaseBeanNames.BATCH_TRANSACTION_MANAGER) PlatformTransactionManager transactionManager) {
-        return new StepBuilder("loadShareholderDetailStep", jobRepository)
-                .tasklet(loadShareholderDetailStep, transactionManager)
+    public Step loadShareholderDetailStep(LoadShareholderDetailTasklet loadShareholderDetailTasklet) {
+        log.info("##> load-shareholder-detail-step initialized");
+        return new StepBuilder("load-shareholder-detail-step", jobRepository)
+                .tasklet(loadShareholderDetailTasklet, transactionManager)
                 .build();
     }
 
+    /**
+     * 엑셀 일괄처리 Step 설정
+     */
     @Bean
     public Step excelStep(@Qualifier("streamingExcelReader") ItemReader<KsdExcelRow> StreamingExcelItemReader,
-//                          @Qualifier("excelItemWriter") ItemWriter<ExcelRow> excelItemWriter,
-                          RedisPipelineWriter redisPipelineWriter,
-                          @Qualifier(DatabaseBeanNames.BATCH_TRANSACTION_MANAGER) PlatformTransactionManager transactionManager) {
+                          RedisPipelineWriter redisPipelineWriter) {
         log.info("##> ExcelStep initialized");
         return new StepBuilder("excelStep", jobRepository)
                 .<KsdExcelRow, KsdExcelRow>chunk(1000, transactionManager)
@@ -80,12 +91,15 @@ public class JobConfig {
                 .build();
     }
 
-    @Bean
-    public ItemWriter<KsdExcelRow> excelItemWriter() {
-        log.info("##> ExcelItemWriter initialized");
-        return items -> {
-            log.info("##> ExcelItemWriter started :: {}", jobParameter);
-            items.forEach(System.out::println);
-        };
-    }
+//    /**
+//     * ItemWriter 설정
+//     */
+//    @Bean
+//    public ItemWriter<KsdExcelRow> excelItemWriter() {
+//        log.info("##> ExcelItemWriter initialized");
+//        return items -> {
+//            log.info("##> ExcelItemWriter started :: {}", jobParameter);
+//            items.forEach(System.out::println);
+//        };
+//    }
 }
