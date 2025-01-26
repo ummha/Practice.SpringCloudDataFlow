@@ -36,20 +36,20 @@ public class StreamingExcelReader extends AbstractItemStreamItemReader<KsdExcelR
             // 엑셀 파일 경로 설정
             Path filePath = Paths.get(Paths.get("").toAbsolutePath().toString(), "/files/test.xlsx");
 
-            // 엑셀 파일 열기
-            opcPackage = OPCPackage.open(filePath.toFile());
-            XSSFReader xssfReader = new XSSFReader(opcPackage);
-
-            // SharedStringTable 또는 ReadOnlySharedStringTable 은 sharedString.xml 전체 정보를 메모리에 할당함
-            // ReadOnlySharedStringsTable stringsTable = new ReadOnlySharedStringsTable(opcPackage);
-
-            // 1. sharedStrings.xml 스트리밍 처리 (Streaming 방식 채택)
-            InputStream sharedStringsStream = xssfReader.getSharedStringsData();
-            List<String> sharedStrings = parseSharedStrings(sharedStringsStream);
-
-            // 2. Sheet 데이터 스트리밍 처리
-            InputStream sheetInputStream = xssfReader.getSheetsData().next();
-            rowIterator = new KsdExcelRowIterator(sheetInputStream, sharedStrings);
+//            // 엑셀 파일 열기
+//            opcPackage = OPCPackage.open(filePath.toFile());
+//            XSSFReader xssfReader = new XSSFReader(opcPackage);
+//
+//            // SharedStringTable 또는 ReadOnlySharedStringTable 은 sharedString.xml 전체 정보를 메모리에 할당함
+//            // ReadOnlySharedStringsTable stringsTable = new ReadOnlySharedStringsTable(opcPackage);
+//
+//            // 1. sharedStrings.xml 스트리밍 처리 (Streaming 방식 채택)
+//            InputStream sharedStringsStream = xssfReader.getSharedStringsData();
+//            List<String> sharedStrings = parseSharedStrings(sharedStringsStream);
+//
+//            // 2. Sheet 데이터 스트리밍 처리
+//            InputStream sheetInputStream = xssfReader.getSheetsData().next();
+            rowIterator = new KsdExcelRowIterator(filePath);
         } catch (Exception e) {
             throw new ItemStreamException("Failed to open Excel file", e);
         }

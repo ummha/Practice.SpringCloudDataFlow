@@ -6,13 +6,14 @@ import com.example.task.excel.AbstractExcelRowIterator;
 import com.example.task.util.ExcelUtils;
 
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 public class KsdExcelRowIterator extends AbstractExcelRowIterator<KsdExcelRow> {
 
-    public KsdExcelRowIterator(InputStream sheetInputStream, List<String> sharedStrings) throws Exception {
-        super(sheetInputStream, sharedStrings, KsdExcelRow.class);
+    public KsdExcelRowIterator(Path filePath) throws Exception {
+        super(filePath, KsdExcelRow.class);
     }
 
     @Override

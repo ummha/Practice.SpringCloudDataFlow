@@ -1,6 +1,9 @@
 package com.example.task.excel;
 
 import lombok.Getter;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
+import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
@@ -9,6 +12,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -18,8 +23,8 @@ public abstract class AbstractExcelRowIterator<T extends ExcelRowSchema> extends
 
     private final BlockingQueue<T> queue = new LinkedBlockingQueue<>(1000);
 
-    private final InputStream sheetInputStream;
-    private final List<String> sharedStrings;
+//    private final InputStream sheetInputStream;
+    private final ReadOnlySharedStringsTable sharedStringsTable;
 
     private final StringBuilder currentCellValue = new StringBuilder(); // 현재 셀 데이터를 저장
     private final List<String> currentRowData = new ArrayList<>(); // 현재 행 데이터를 저장
@@ -32,18 +37,27 @@ public abstract class AbstractExcelRowIterator<T extends ExcelRowSchema> extends
     private boolean isHeaderRow = true; // 첫 행인지 여부
     private T nextRowData; // 다음 반환할 RowData
 
-    public AbstractExcelRowIterator(InputStream sheetInputStream, List<String> sharedStrings, Class<T> headerDefinitionClazz) throws Exception {
-        this.sheetInputStream = sheetInputStream;
-        this.sharedStrings = sharedStrings;
+    public AbstractExcelRowIterator(Path filePath, Class<T> headerDefinitionClazz) throws Exception {
+        OPCPackage opcPackage = OPCPackage.open(filePath.toFile());
+        XSSFReader xssfReader = new XSSFReader(opcPackage);
+
+        this.sharedStringsTable = new ReadOnlySharedStringsTable(opcPackage); // ReadOnlySharedStringsTable 인스턴스
+//        this.sheetInputStream = xssfReader.getSheetsData().next();
+
         this.headerDefinitionClazz = headerDefinitionClazz;
         this.EOF_MARKER = getEOFMarker();
 
         // SAX 파서를 별도 쓰레드에서 실행
         Thread parserThread = new Thread(() -> {
             try {
-                SAXParserFactory factory = SAXParserFactory.newInstance();
-                SAXParser parser = factory.newSAXParser();
-                parser.parse(new InputSource(sheetInputStream), this);
+                Iterator<InputStream> sheetStreams = xssfReader.getSheetsData();
+                while(sheetStreams.hasNext()) {
+                    try (InputStream sheetInputStream = sheetStreams.next()) {
+                        SAXParserFactory factory = SAXParserFactory.newInstance();
+                        SAXParser parser = factory.newSAXParser();
+                        parser.parse(new InputSource(sheetInputStream), this);
+                    }
+                }
                 queue.put(this.EOF_MARKER); // EOF 마커 추가
             } catch (Exception e) {
                 throw new RuntimeException("Error during parsing", e);
@@ -167,7 +181,7 @@ public abstract class AbstractExcelRowIterator<T extends ExcelRowSchema> extends
     private String parseCellValue(String value, String type) {
         if ("s".equals(type)) { // Shared String 처리
             int idx = Integer.parseInt(value);
-            return sharedStrings.get(idx);
+            return sharedStringsTable.getItemAt(idx).toString(); // ReadOnlySharedStringsTable에서 값 가져오기
         }
         return value; // 다른 데이터 유형 처리
     }

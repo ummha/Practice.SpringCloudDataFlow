@@ -28,15 +28,17 @@ public class RedisPipelineWriter implements ItemWriter<KsdExcelRow> {
     private final int TTL = 3600 * 24; // Hash 만료시간: 하루
     private final String KEY_PREFIX = "KW2_SHAREHOLDER";
 
+    private long testCount = 0;
+
     @Override
     @Transactional
     public void write(@NonNull Chunk<? extends KsdExcelRow> chunk) throws Exception {
         try {
 //            jdbcTemplate.execute("ALTER SEQUENCE ADMIN.TEST_SEQ INCREMENT BY " + chunk.size());
 //            Long sequence = jdbcTemplate.queryForObject("SELECT ADMIN.TEST_SEQ.NEXTVAL FROM DUAL", Long.class);
+            log.info("isBusy: {}, isEnd: {}, isEmpty: {}, chunkSize: {}", chunk.isBusy(), chunk.isEnd(), chunk.isEmpty(), chunk.size());
 
             redisTemplate.executePipelined((RedisCallback<?>) connection -> {
-                log.info("isBusy: {}, isEnd: {}, isEmpty: {}, chunkSize: {}", chunk.isBusy(), chunk.isEnd(), chunk.isEmpty(), chunk.size());
 
                 for (KsdExcelRow item : chunk) {
                     final String KEY = KEY_PREFIX + item.actualShareholderNo();
@@ -52,9 +54,11 @@ public class RedisPipelineWriter implements ItemWriter<KsdExcelRow> {
                         throw new RuntimeException(e);
                     }
                 }
-
                 return null; // executePipelined는 반환값이 필요하지 않으므로 null 반환
             });
+
+            testCount += chunk.size();
+            log.info("testCount: {}", testCount);
         } finally {
 //            jdbcTemplate.execute("ALTER SEQUENCE ADMIN.TEST_SEQ INCREMENT BY 1");
         }
